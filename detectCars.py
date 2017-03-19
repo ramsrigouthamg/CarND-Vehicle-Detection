@@ -360,7 +360,8 @@ if __name__ == "__main__":
         rgb_img = cv2.merge([r,g,b])
         final_output =process_image(rgb_img)
 
-
+        r, g, b = cv2.split(final_output)
+        final_output = cv2.merge([b,g,r])
         cv2.imshow('frame', final_output)
         # Write the final image to videoWriter
         out.write(final_output)
