@@ -140,27 +140,41 @@ def find_cars(img, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, ce
     return draw_img,bounding_boxes
 
 
+def find_cars_multiscale(image, ystart, ystop, svc, X_scaler, orient, pix_per_cell, cell_per_block,showImage=False):
+    scales = [1.0,1.4,1.8,2.2,2.6,3.0,3.4]
+    all_scales_bboxes = []
+
+    for scale in scales:
+        img,boundingboxes = find_cars(image, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, cell_per_block,showImage=False)
+        for box in boundingboxes:
+            all_scales_bboxes.append(box)
+
+    return all_scales_bboxes
+
+
 if __name__ == "__main__":
 
 
-    image = mpimg.imread('test_images/test6.jpg')
+    image = mpimg.imread('test_images/test1.jpg')
     heat = np.zeros_like(image[:, :, 0]).astype(np.float)
-    ystart = 400
-    ystop = 656
-    scale = 1.0
+    # ystart = 400
+    # ystop = 656
+    ystart = 370
+    ystop = 700
+    scale = 1.8
     orient = 8  # HOG orientations
     pix_per_cell = 8  # HOG pixels per cell
     cell_per_block = 1  # HOG cells per block
     svc = pickle.load(open("saved_svc_YCrCb.p", "rb"))  # Load svc
     X_scaler = pickle.load(open("saved_X_scaler_YCrCb.p", "rb"))  # Load svc
 
-    out_img,bboxes = find_cars(image, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, cell_per_block,showImage=False)
+    bboxes = find_cars_multiscale(image, ystart, ystop, svc, X_scaler, orient, pix_per_cell, cell_per_block,showImage=False)
     finalImage = draw_boxes(image,bboxes,color=(0, 0, 255))
 
     # Add heat to each box in box list
     heat = add_heat(heat, bboxes)
     # Apply threshold to help remove false positives
-    heat = apply_threshold(heat, 1)
+    heat = apply_threshold(heat, 5)
 
     # Visualize the heatmap when displaying
     heatmap = np.clip(heat, 0, 255)
