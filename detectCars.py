@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler
 import glob
 from scipy.ndimage.measurements import label
+# from moviepy.editor import VideoFileClip
+# import moviepy as mve
 
 def add_heat(heatmap, bbox_list):
     # Iterate through list of bboxes
@@ -317,23 +319,60 @@ def process_image(img):
 
 if __name__ == "__main__":
     # Read in image similar to one shown above
-    image = mpimg.imread('test_images/test3.jpg')
+    # image = mpimg.imread('test_images/test3.jpg')
+    #
+    # nframes = 1
+    # smooth_thres =0
+    # smooth_average=0
+    # bbox_frames=[]
+    # #Inicialization of list
+    # for i in range(nframes):
+    #     bbox_frames.append(0)
+    # counter = 0
+    #
+    # img2 = process_image(image)
+    # plt.imshow(img2)
+    # plt.show()
 
-    #image = mpimg.imread('frame06.jpeg')
-    #image = mpimg.imread('frame23.jpeg')
-    #image = mpimg.imread('frame43.jpeg')
-    #image = mpimg.imread('frame42.jpeg')
+    # Create video file pipeline
+    counter = 0
+    nframes = 25
+    smooth_thres = 1
+    smooth_average = 6
 
-    plt.figure(figsize=(25,10))
-    nframes = 1
-    smooth_thres =0
-    smooth_average=0
-    bbox_frames=[]
-    #Inicialization of list
+    bbox_frames = []
+    # Inicialization of list
     for i in range(nframes):
         bbox_frames.append(0)
     counter = 0
 
-    img2 = process_image(image)
-    plt.imshow(img2)
-    plt.show()
+
+    cap = cv2.VideoCapture('project_video.mp4')
+    fourcc = cv2.VideoWriter_fourcc(*'MP4V')
+    out = cv2.VideoWriter('output.mp4', fourcc, 20.0, (1280, 720))
+    frameNo = 0
+    while (cap.isOpened()):
+        frameNo = frameNo + 1
+        print ("FrameNo ",frameNo)
+        # Read an image
+        ret, frame = cap.read()
+        b,g,r = cv2.split(frame)
+        rgb_img = cv2.merge([r,g,b])
+        final_output =process_image(rgb_img)
+
+
+        cv2.imshow('frame', final_output)
+        # Write the final image to videoWriter
+        out.write(final_output)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+    cap.release()
+    out.release()
+    cv2.destroyAllWindows()
+
+    # clip1 = VideoFileClip("project_video.mp4")
+    # clip1 = VideoFileClip("project_video.mp4")  # .subclip(40,44)
+    #
+    # out_clip = clip1.fl_image(process_image)  # NOTE: this function expects color images!!
+    # out_clip.write_videofile(output, audio=False)
