@@ -143,7 +143,7 @@ def find_cars(img, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, ce
 if __name__ == "__main__":
 
 
-    image = mpimg.imread('test_images/test1.jpg')
+    image = mpimg.imread('test_images/test6.jpg')
     heat = np.zeros_like(image[:, :, 0]).astype(np.float)
     ystart = 400
     ystop = 656
@@ -160,7 +160,7 @@ if __name__ == "__main__":
     # Add heat to each box in box list
     heat = add_heat(heat, bboxes)
     # Apply threshold to help remove false positives
-    heat = apply_threshold(heat, 2)
+    heat = apply_threshold(heat, 1)
 
     # Visualize the heatmap when displaying
     heatmap = np.clip(heat, 0, 255)
