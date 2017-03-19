@@ -34,8 +34,8 @@ def extract_features(imgs, orient=8,pix_per_cell=8, cell_per_block=4):
     for file in imgs:
         # Read in each one by one
         image = mpimg.imread(file)
-        feature_image = np.copy(image)
-
+        # feature_image = np.copy(image)
+        feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2YCrCb)
         # Call get_hog_features() with vis=False, feature_vec=True
         hog_features = []
         for channel in range(feature_image.shape[2]):
@@ -101,11 +101,11 @@ if __name__ == "__main__":
 
     import pickle
 
-    pickle.dump(svc, open("saved_svc.p", "wb"))
-    pickle.dump(svc, open("saved_X_scaler.p", "wb"))
+    pickle.dump(svc, open("saved_svc_YCrCb.p", "wb"))
+    pickle.dump(X_scaler, open("saved_X_scaler_YCrCb.p", "wb"))
 
-    loaded_svc = pickle.load(open("saved_svc.p", "rb"))
-    loaded_X_scale = pickle.load(open("saved_X_scaler.p", "rb"))
+    loaded_svc = pickle.load(open("saved_svc_YCrCb.p", "rb"))
+    loaded_X_scale = pickle.load(open("saved_X_scaler_YCrCb.p", "rb"))
 
     print(loaded_svc)
 
