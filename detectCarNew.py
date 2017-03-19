@@ -169,7 +169,7 @@ if __name__ == "__main__":
     # image = image.astype(np.float32) / 255
 
     windows = slide_window(image, x_start_stop=[None, None], y_start_stop=y_start_stop,
-                           xy_window=(64, 64), xy_overlap=(0.75, 0.75))
+                           xy_window=(96, 96), xy_overlap=(0.80, 0.80))
 
     hot_windows = search_windows(image, windows, svc, X_scaler, color_space=color_space,
                                  orient=orient, pix_per_cell=pix_per_cell,
