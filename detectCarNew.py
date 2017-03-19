@@ -9,6 +9,16 @@ from sklearn.preprocessing import StandardScaler
 import glob
 from scipy.ndimage.measurements import label
 
+def draw_boxes(img, bboxes, color=(0, 0, 255), thick=6):
+    # Make a copy of the image
+    imcopy = np.copy(img)
+    # Iterate through the bounding boxes
+    for bbox in bboxes:
+        # Draw a rectangle given bbox coordinates
+        cv2.rectangle(imcopy, bbox[0], bbox[1], color, thick)
+    # Return the image copy with boxes drawn
+    return imcopy
+
 # Define a function to return HOG features and visualization
 def get_hog_features(img, orient, pix_per_cell, cell_per_block,
                         vis=False, feature_vec=True):
@@ -39,10 +49,10 @@ def convert_color(img, conv='RGB2YCrCb'):
         return cv2.cvtColor(img, cv2.COLOR_RGB2LUV)
 
 # Define a single function that can extract features using hog sub-sampling and make predictions
-def find_cars(img, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, cell_per_block):
+def find_cars(img, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, cell_per_block,showImage=True):
     draw_img = np.copy(img)
     img = img.astype(np.float32) / 255
-
+    bounding_boxes =[]
     img_tosearch = img[ystart:ystop, :, :]
     ctrans_tosearch = convert_color(img_tosearch, conv='RGB2YCrCb')
     if scale != 1:
@@ -91,16 +101,18 @@ def find_cars(img, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, ce
                 xbox_left = np.int(xleft * scale)
                 ytop_draw = np.int(ytop * scale)
                 win_draw = np.int(window * scale)
-                cv2.rectangle(draw_img, (xbox_left, ytop_draw + ystart),
+                bounding_boxes.append(((xbox_left, ytop_draw + ystart), (xbox_left + win_draw, ytop_draw + win_draw + ystart)))
+                if showImage:
+                    cv2.rectangle(draw_img, (xbox_left, ytop_draw + ystart),
                               (xbox_left + win_draw, ytop_draw + win_draw + ystart), (0, 0, 255), 6)
 
-    return draw_img
+    return draw_img,bounding_boxes
 
 
 if __name__ == "__main__":
 
 
-    image = mpimg.imread('test_images/test6.jpg')
+    image = mpimg.imread('test_images/test1.jpg')
     ystart = 400
     ystop = 656
     scale = 1.0
@@ -110,6 +122,7 @@ if __name__ == "__main__":
     svc = pickle.load(open("saved_svc_YCrCb.p", "rb"))  # Load svc
     X_scaler = pickle.load(open("saved_X_scaler_YCrCb.p", "rb"))  # Load svc
 
-    out_img = find_cars(image, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, cell_per_block)
-    plt.imshow(out_img)
+    out_img,bboxes = find_cars(image, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, cell_per_block,showImage=False)
+    finalImage = draw_boxes(image,bboxes)
+    plt.imshow(finalImage)
     plt.show()
