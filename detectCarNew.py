@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler
 import glob
 from scipy.ndimage.measurements import label
+from collections import deque
 
 def draw_boxes(img, bboxes, color=(0, 0, 255), thick=6):
     # Make a copy of the image
@@ -141,7 +142,8 @@ def find_cars(img, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, ce
 
 
 def find_cars_multiscale(image, ystart, ystop, svc, X_scaler, orient, pix_per_cell, cell_per_block,showImage=False):
-    scales = [1.0,1.4,1.8,2.2,2.6,3.0,3.4]
+    # scales = [1.0,1.4,1.8,2.2,2.6,3.0,3.4]
+    scales = [1.0, 1.4, 1.8, 2.2, 2.6, 3.0]
     all_scales_bboxes = []
 
     for scale in scales:
@@ -155,42 +157,103 @@ def find_cars_multiscale(image, ystart, ystop, svc, X_scaler, orient, pix_per_ce
 if __name__ == "__main__":
 
 
-    image = mpimg.imread('test_images/test6.jpg')
-    heat = np.zeros_like(image[:, :, 0]).astype(np.float)
+    # image = mpimg.imread('test_images/test6.jpg')
+    # heat = np.zeros_like(image[:, :, 0]).astype(np.float)
     # ystart = 400
     # ystop = 656
     ystart = 370
     ystop = 700
-    scale = 1.8
+    # scale = 1.8
     orient = 8  # HOG orientations
     pix_per_cell = 8  # HOG pixels per cell
     cell_per_block = 1  # HOG cells per block
     svc = pickle.load(open("saved_svc_YCrCb.p", "rb"))  # Load svc
     X_scaler = pickle.load(open("saved_X_scaler_YCrCb.p", "rb"))  # Load svc
 
-    bboxes = find_cars_multiscale(image, ystart, ystop, svc, X_scaler, orient, pix_per_cell, cell_per_block,showImage=False)
-    finalImage = draw_boxes(image,bboxes,color=(0, 0, 255))
+    # bboxes = find_cars_multiscale(image, ystart, ystop, svc, X_scaler, orient, pix_per_cell, cell_per_block,showImage=False)
+    # finalImage = draw_boxes(image,bboxes,color=(0, 0, 255))
+    #
+    # # Add heat to each box in box list
+    # heat = add_heat(heat, bboxes)
+    # # Apply threshold to help remove false positives
+    # heat = apply_threshold(heat, 10)
+    #
+    # # Visualize the heatmap when displaying
+    # heatmap = np.clip(heat, 0, 255)
+    #
+    # # Find final boxes from heatmap using label function
+    # labels = label(heatmap)
+    # draw_img = draw_labeled_bboxes(np.copy(image), labels)
+    #
+    # fig = plt.figure()
+    # plt.subplot(121)
+    # plt.imshow(draw_img)
+    # plt.title('Car Positions')
+    # plt.subplot(122)
+    # plt.imshow(heatmap, cmap='hot')
+    # plt.title('Heat Map')
+    # fig.tight_layout()
+    #
+    # # plt.imshow(finalImage)
+    # plt.show()
 
-    # Add heat to each box in box list
-    heat = add_heat(heat, bboxes)
-    # Apply threshold to help remove false positives
-    heat = apply_threshold(heat, 10)
+    # cap = cv2.VideoCapture('project_video.mp4')
+    cap = cv2.VideoCapture('test_video.mp4')
+    fourcc = cv2.VideoWriter_fourcc(*'MP4V')
+    out = cv2.VideoWriter('output.mp4', fourcc, 20.0, (1280, 720))
+    frameNo = 0
+    # Define a queue to store moving average of heat map
+    heatMapMovingAverage = deque(maxlen=10)
 
-    # Visualize the heatmap when displaying
-    heatmap = np.clip(heat, 0, 255)
+    while (cap.isOpened()):
+        frameNo = frameNo + 1
 
-    # Find final boxes from heatmap using label function
-    labels = label(heatmap)
-    draw_img = draw_labeled_bboxes(np.copy(image), labels)
 
-    fig = plt.figure()
-    plt.subplot(121)
-    plt.imshow(draw_img)
-    plt.title('Car Positions')
-    plt.subplot(122)
-    plt.imshow(heatmap, cmap='hot')
-    plt.title('Heat Map')
-    fig.tight_layout()
+        print("FrameNo ", frameNo)
 
-    # plt.imshow(finalImage)
-    plt.show()
+        # Read an image
+        ret, frame = cap.read()
+        # if frameNo < 300 or frameNo > 1000:
+        #     continue
+        # Process only every 10 frames
+        # if frameNo %10 !=0:
+        #     continue
+        b, g, r = cv2.split(frame)
+        rgb_img = cv2.merge([r, g, b])
+        heat = np.zeros_like(frame[:, :, 0]).astype(np.float)
+        heatAvg = np.zeros_like(frame[:, :, 0]).astype(np.float)
+
+        bboxes = find_cars_multiscale(rgb_img, ystart, ystop, svc, X_scaler, orient, pix_per_cell, cell_per_block,
+                                      showImage=False)
+
+        # Add heat to each box in box list
+        heat = add_heat(heat, bboxes)
+
+        # heatMapMovingAverage.appendleft(heat)
+        #
+        # for eachHeatMap in heatMapMovingAverage:
+        #     heatAvg = np.add(heatAvg,eachHeatMap)
+        #
+        # heatAvg = np.divide(heatAvg,len(heatMapMovingAverage))
+        # Apply threshold to help remove false positives
+        heat = apply_threshold(heat, 5)
+
+        # Visualize the heatmap when displaying
+        heatmap = np.clip(heat, 0, 255)
+
+        # Find final boxes from heatmap using label function
+        labels = label(heatmap)
+        draw_img = draw_labeled_bboxes(np.copy(rgb_img), labels)
+
+        r, g, b = cv2.split(draw_img)
+        final_output = cv2.merge([b, g, r])
+        cv2.imshow('frame', final_output)
+        # cv2.imshow('heatmap', heatmap)
+        # Write the final image to videoWriter
+        out.write(final_output)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+    cap.release()
+    out.release()
+    cv2.destroyAllWindows()
