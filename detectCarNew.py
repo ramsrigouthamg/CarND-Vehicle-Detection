@@ -239,7 +239,7 @@ if __name__ == "__main__":
         heat = apply_threshold(heat, 5)
 
         # Visualize the heatmap when displaying
-        heatmap = np.clip(heat, 0, 255)
+        heatmap = np.clip(heat, 0, 1)
 
         # Apply threshold to help remove false positives
         heatMapMovingAverage.appendleft(heatmap)
@@ -247,11 +247,11 @@ if __name__ == "__main__":
         for eachHeatMap in heatMapMovingAverage:
             heatAvg = np.add(heatAvg,eachHeatMap)
 
-        heatAvg = np.divide(heatAvg,len(heatMapMovingAverage))
-        print ("len(heatMapMovingAverage) ",len(heatMapMovingAverage))
-        heatAvg = apply_threshold(heatAvg, 5)
+        # heatAvg = np.divide(heatAvg,len(heatMapMovingAverage))
+        print ("len(heatMapMovingAverage) ",len(heatMapMovingAverage),"Max val ",np.amax(heatAvg))
+        heatAvg = apply_threshold(heatAvg, 3)
         # Find final boxes from heatmap using label function
-        labels = label(heatmap)
+        labels = label(heatAvg)
         draw_img = draw_labeled_bboxes(np.copy(rgb_img), labels)
 
         r, g, b = cv2.split(draw_img)
