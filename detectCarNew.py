@@ -161,8 +161,8 @@ if __name__ == "__main__":
     # heat = np.zeros_like(image[:, :, 0]).astype(np.float)
     # ystart = 400
     # ystop = 656
-    ystart = 370
-    ystop = 700
+    ystart = 380
+    ystop = 670
     # scale = 1.8
     orient = 8  # HOG orientations
     pix_per_cell = 8  # HOG pixels per cell
@@ -197,8 +197,8 @@ if __name__ == "__main__":
     # # plt.imshow(finalImage)
     # plt.show()
 
-    # cap = cv2.VideoCapture('project_video.mp4')
-    cap = cv2.VideoCapture('test_video.mp4')
+    cap = cv2.VideoCapture('project_video.mp4')
+    # cap = cv2.VideoCapture('test_video.mp4')
     fourcc = cv2.VideoWriter_fourcc(*'MP4V')
     out = cv2.VideoWriter('output.mp4', fourcc, 20.0, (1280, 720))
     frameNo = 0
@@ -249,13 +249,14 @@ if __name__ == "__main__":
 
         # heatAvg = np.divide(heatAvg,len(heatMapMovingAverage))
         print ("len(heatMapMovingAverage) ",len(heatMapMovingAverage),"Max val ",np.amax(heatAvg))
-        heatAvg = apply_threshold(heatAvg, 3)
+        heatAvg = apply_threshold(heatAvg, 5)
         # Find final boxes from heatmap using label function
         labels = label(heatAvg)
         draw_img = draw_labeled_bboxes(np.copy(rgb_img), labels)
-
+        font = cv2.FONT_HERSHEY_SIMPLEX
         r, g, b = cv2.split(draw_img)
         final_output = cv2.merge([b, g, r])
+        cv2.putText(final_output, 'Frame No: '+str(frameNo), (100, 150), font, 1, (255, 255, 255), 1, cv2.LINE_AA)
         cv2.imshow('frame', final_output)
         # cv2.imshow('heatmap', heatmap)
         # Write the final image to videoWriter
