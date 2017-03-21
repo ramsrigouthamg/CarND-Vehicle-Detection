@@ -40,8 +40,13 @@ def draw_labeled_bboxes(img, labels):
         nonzerox = np.array(nonzero[1])
         # Define a bounding box based on min/max x and y
         bbox = ((np.min(nonzerox), np.min(nonzeroy)), (np.max(nonzerox), np.max(nonzeroy)))
-        # Draw the box on the image
-        cv2.rectangle(img, bbox[0], bbox[1], (0,0,255), 6)
+
+        areaInPixels = (np.max(nonzerox) - np.min(nonzerox))*(np.max(nonzeroy) - np.min(nonzeroy))
+        # Draw the box on the image if it is higher than a fixed area threshold
+        if areaInPixels > 5000: #In pixels
+            cv2.rectangle(img, bbox[0], bbox[1], (0,0,255), 6)
+        # font = cv2.FONT_HERSHEY_SIMPLEX
+        # cv2.putText(img, str(areaInPixels), (np.min(nonzerox), np.min(nonzeroy)), font, 1, (255, 255, 255), 1, cv2.LINE_AA)
     # Return the image
     return img
 
