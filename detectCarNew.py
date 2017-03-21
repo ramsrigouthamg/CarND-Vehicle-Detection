@@ -203,7 +203,7 @@ if __name__ == "__main__":
     out = cv2.VideoWriter('output.mp4', fourcc, 20.0, (1280, 720))
     frameNo = 0
     # Define a queue to store moving average of heat map
-    heatMapMovingAverage = deque(maxlen=10)
+    heatMapMovingAverage = deque(maxlen=15)
 
     while (cap.isOpened()):
         frameNo = frameNo + 1
@@ -249,7 +249,7 @@ if __name__ == "__main__":
 
         # heatAvg = np.divide(heatAvg,len(heatMapMovingAverage))
         print ("len(heatMapMovingAverage) ",len(heatMapMovingAverage),"Max val ",np.amax(heatAvg))
-        heatAvg = apply_threshold(heatAvg, 5)
+        heatAvg = apply_threshold(heatAvg, 7)
         # Find final boxes from heatmap using label function
         labels = label(heatAvg)
         draw_img = draw_labeled_bboxes(np.copy(rgb_img), labels)
