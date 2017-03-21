@@ -32,21 +32,48 @@ def extract_features(imgs, orient=8,pix_per_cell=8, cell_per_block=4):
     features = []
     # Iterate through the list of images
     for file in imgs:
+        image_features = []
         # Read in each one by one
         image = mpimg.imread(file)
         # feature_image = np.copy(image)
         feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2YCrCb)
         # Call get_hog_features() with vis=False, feature_vec=True
+        spatial_features = bin_spatial(feature_image, size=(32,32))
+        image_features.append(spatial_features)
+
+        hist_features = color_hist(feature_image, nbins=32)
+
+        image_features.append(hist_features)
+
         hog_features = []
         for channel in range(feature_image.shape[2]):
             hog_features.append(get_hog_features(feature_image[:, :, channel],
                                                  orient, pix_per_cell, cell_per_block,
                                                  vis=False, feature_vec=True))
         hog_features = np.ravel(hog_features)
-        features.append(hog_features)
-    # Return list of feature vectors
-    return features
+        image_features.append(hog_features)
+        image_features = np.concatenate(image_features)
 
+        features.append(image_features)
+    # Return list of feature vectors
+    return np.array(features)
+
+
+def bin_spatial(image, size=(32, 32)):
+
+    color1 = cv2.resize(image[:, :, 0], size).ravel()
+    color2 = cv2.resize(image[:, :, 1], size).ravel()
+    color3 = cv2.resize(image[:, :, 2], size).ravel()
+
+    return np.hstack((color1, color2, color3))
+
+def color_hist(img, nbins=32):
+
+    color_1_hist = np.histogram(img[:, :, 0], bins=nbins)
+    color_2_hist = np.histogram(img[:, :, 0], bins=nbins)
+    color_3_hist = np.histogram(img[:, :, 0], bins=nbins)
+
+    return np.concatenate((color_1_hist[0], color_2_hist[0], color_3_hist[0]))
 
 
 if __name__ == "__main__":
@@ -101,11 +128,11 @@ if __name__ == "__main__":
 
     import pickle
 
-    pickle.dump(svc, open("saved_svc_YCrCb.p", "wb"))
-    pickle.dump(X_scaler, open("saved_X_scaler_YCrCb.p", "wb"))
+    pickle.dump(svc, open("saved_svc_YCrCb_full.p", "wb"))
+    pickle.dump(X_scaler, open("saved_X_scaler_YCrCb_full.p", "wb"))
 
-    loaded_svc = pickle.load(open("saved_svc_YCrCb.p", "rb"))
-    loaded_X_scale = pickle.load(open("saved_X_scaler_YCrCb.p", "rb"))
+    loaded_svc = pickle.load(open("saved_svc_YCrCb_full.p", "rb"))
+    loaded_X_scale = pickle.load(open("saved_X_scaler_YCrCb_full.p", "rb"))
 
     print(loaded_svc)
 

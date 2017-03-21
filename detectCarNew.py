@@ -85,6 +85,22 @@ def convert_color(img, conv='RGB2YCrCb'):
     if conv == 'RGB2LUV':
         return cv2.cvtColor(img, cv2.COLOR_RGB2LUV)
 
+def bin_spatial(image, size=(32, 32)):
+
+    color1 = cv2.resize(image[:, :, 0], size).ravel()
+    color2 = cv2.resize(image[:, :, 1], size).ravel()
+    color3 = cv2.resize(image[:, :, 2], size).ravel()
+
+    return np.hstack((color1, color2, color3))
+
+def color_hist(img, nbins=32):
+
+    color_1_hist = np.histogram(img[:, :, 0], bins=nbins)
+    color_2_hist = np.histogram(img[:, :, 0], bins=nbins)
+    color_3_hist = np.histogram(img[:, :, 0], bins=nbins)
+
+    return np.concatenate((color_1_hist[0], color_2_hist[0], color_3_hist[0]))
+
 # Define a single function that can extract features using hog sub-sampling and make predictions
 def find_cars(img, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, cell_per_block,showImage=True):
     draw_img = np.copy(img)
@@ -129,9 +145,14 @@ def find_cars(img, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, ce
             xleft = xpos * pix_per_cell
             ytop = ypos * pix_per_cell
 
+            # Extract the image patch
+            subimg = cv2.resize(ctrans_tosearch[ytop:ytop + window, xleft:xleft + window], (64, 64))
+            spatial_features = bin_spatial(subimg, size=(32, 32))
+            hist_features = color_hist(subimg, nbins=32)
 
+            combineFeatures = np.hstack((spatial_features, hist_features, hog_features))
             # Scale features and make a prediction
-            test_features = X_scaler.transform(hog_features).reshape(1, -1)
+            test_features = X_scaler.transform(combineFeatures).reshape(1, -1)
             test_prediction = svc.predict(test_features)
 
             if test_prediction == 1:
@@ -172,8 +193,8 @@ if __name__ == "__main__":
     orient = 8  # HOG orientations
     pix_per_cell = 8  # HOG pixels per cell
     cell_per_block = 1  # HOG cells per block
-    svc = pickle.load(open("saved_svc_YCrCb.p", "rb"))  # Load svc
-    X_scaler = pickle.load(open("saved_X_scaler_YCrCb.p", "rb"))  # Load svc
+    svc = pickle.load(open("saved_svc_YCrCb_full.p", "rb"))  # Load svc
+    X_scaler = pickle.load(open("saved_X_scaler_YCrCb_full.p", "rb"))  # Load svc
 
     # bboxes = find_cars_multiscale(image, ystart, ystop, svc, X_scaler, orient, pix_per_cell, cell_per_block,showImage=False)
     # finalImage = draw_boxes(image,bboxes,color=(0, 0, 255))
