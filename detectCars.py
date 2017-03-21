@@ -76,7 +76,7 @@ def get_hog_features(img, orient, pix_per_cell, cell_per_block,
                        visualise=vis, feature_vector=feature_vec)
         return features
 
-
+# Convert an image to a different color representation
 def convert_color(img, conv='RGB2YCrCb'):
     if conv == 'RGB2YCrCb':
         return cv2.cvtColor(img, cv2.COLOR_RGB2YCrCb)
@@ -85,20 +85,22 @@ def convert_color(img, conv='RGB2YCrCb'):
     if conv == 'RGB2LUV':
         return cv2.cvtColor(img, cv2.COLOR_RGB2LUV)
 
+# Define a function to compute binned color features
 def bin_spatial(image, size=(32, 32)):
-
+    # Use cv2.resize().ravel() to create the feature vector
     color1 = cv2.resize(image[:, :, 0], size).ravel()
     color2 = cv2.resize(image[:, :, 1], size).ravel()
     color3 = cv2.resize(image[:, :, 2], size).ravel()
-
+    # Return the feature vector
     return np.hstack((color1, color2, color3))
 
+# Define a function to compute color histogram features
 def color_hist(img, nbins=32):
-
+    # Compute the histogram of the color channels separately
     color_1_hist = np.histogram(img[:, :, 0], bins=nbins)
     color_2_hist = np.histogram(img[:, :, 0], bins=nbins)
     color_3_hist = np.histogram(img[:, :, 0], bins=nbins)
-
+    # Concatenate the histograms into a single feature vector and return
     return np.concatenate((color_1_hist[0], color_2_hist[0], color_3_hist[0]))
 
 # Define a single function that can extract features using hog sub-sampling and make predictions
@@ -147,7 +149,9 @@ def find_cars(img, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, ce
 
             # Extract the image patch
             subimg = cv2.resize(ctrans_tosearch[ytop:ytop + window, xleft:xleft + window], (64, 64))
+            # Extract binned color features
             spatial_features = bin_spatial(subimg, size=(32, 32))
+            # Apply color_hist() also with a color space option
             hist_features = color_hist(subimg, nbins=32)
 
             combineFeatures = np.hstack((spatial_features, hist_features, hog_features))
@@ -168,7 +172,7 @@ def find_cars(img, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, ce
 
 
 def find_cars_multiscale(image, ystart, ystop, svc, X_scaler, orient, pix_per_cell, cell_per_block,showImage=False):
-    # scales = [1.0,1.4,1.8,2.2,2.6,3.0,3.4]
+    # Different scales to search in the images for cars.
     scales = [1.0, 1.4, 1.8, 2.2, 2.6, 3.0]
     all_scales_bboxes = []
 
@@ -182,11 +186,6 @@ def find_cars_multiscale(image, ystart, ystop, svc, X_scaler, orient, pix_per_ce
 
 if __name__ == "__main__":
 
-
-    # image = mpimg.imread('test_images/test6.jpg')
-    # heat = np.zeros_like(image[:, :, 0]).astype(np.float)
-    # ystart = 400
-    # ystop = 656
     ystart = 380
     ystop = 670
     # scale = 1.8
@@ -195,33 +194,6 @@ if __name__ == "__main__":
     cell_per_block = 1  # HOG cells per block
     svc = pickle.load(open("saved_svc_YCrCb_full.p", "rb"))  # Load svc
     X_scaler = pickle.load(open("saved_X_scaler_YCrCb_full.p", "rb"))  # Load svc
-
-    # bboxes = find_cars_multiscale(image, ystart, ystop, svc, X_scaler, orient, pix_per_cell, cell_per_block,showImage=False)
-    # finalImage = draw_boxes(image,bboxes,color=(0, 0, 255))
-    #
-    # # Add heat to each box in box list
-    # heat = add_heat(heat, bboxes)
-    # # Apply threshold to help remove false positives
-    # heat = apply_threshold(heat, 10)
-    #
-    # # Visualize the heatmap when displaying
-    # heatmap = np.clip(heat, 0, 255)
-    #
-    # # Find final boxes from heatmap using label function
-    # labels = label(heatmap)
-    # draw_img = draw_labeled_bboxes(np.copy(image), labels)
-    #
-    # fig = plt.figure()
-    # plt.subplot(121)
-    # plt.imshow(draw_img)
-    # plt.title('Car Positions')
-    # plt.subplot(122)
-    # plt.imshow(heatmap, cmap='hot')
-    # plt.title('Heat Map')
-    # fig.tight_layout()
-    #
-    # # plt.imshow(finalImage)
-    # plt.show()
 
     cap = cv2.VideoCapture('project_video.mp4')
     # cap = cv2.VideoCapture('test_video.mp4')
@@ -233,17 +205,9 @@ if __name__ == "__main__":
 
     while (cap.isOpened()):
         frameNo = frameNo + 1
-
-
         print("FrameNo ", frameNo)
-
         # Read an image
         ret, frame = cap.read()
-        # if frameNo < 300 or frameNo > 1000:
-        #     continue
-        # Process only every 10 frames
-        # if frameNo %10 !=0:
-        #     continue
         b, g, r = cv2.split(frame)
         rgb_img = cv2.merge([r, g, b])
         heat = np.zeros_like(frame[:, :, 0]).astype(np.float)
@@ -255,12 +219,6 @@ if __name__ == "__main__":
         # Add heat to each box in box list
         heat = add_heat(heat, bboxes)
 
-        # heatMapMovingAverage.appendleft(heat)
-        #
-        # for eachHeatMap in heatMapMovingAverage:
-        #     heatAvg = np.add(heatAvg,eachHeatMap)
-        #
-        # heatAvg = np.divide(heatAvg,len(heatMapMovingAverage))
         # Apply threshold to help remove false positives
         heat = apply_threshold(heat, 5)
 
@@ -273,7 +231,6 @@ if __name__ == "__main__":
         for eachHeatMap in heatMapMovingAverage:
             heatAvg = np.add(heatAvg,eachHeatMap)
 
-        # heatAvg = np.divide(heatAvg,len(heatMapMovingAverage))
         print ("len(heatMapMovingAverage) ",len(heatMapMovingAverage),"Max val ",np.amax(heatAvg))
         heatAvg = apply_threshold(heatAvg, 7)
         # Find final boxes from heatmap using label function
@@ -284,7 +241,6 @@ if __name__ == "__main__":
         final_output = cv2.merge([b, g, r])
         cv2.putText(final_output, 'Frame No: '+str(frameNo), (100, 75), font, 1, (255, 255, 255), 1, cv2.LINE_AA)
         cv2.imshow('frame', final_output)
-        # cv2.imshow('heatmap', heatmap)
         # Write the final image to videoWriter
         out.write(final_output)
         if cv2.waitKey(1) & 0xFF == ord('q'):

@@ -40,7 +40,7 @@ def extract_features(imgs, orient=8,pix_per_cell=8, cell_per_block=4):
         image = mpimg.imread(file)
         # apply color conversion to 'YCrCb'
         feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2YCrCb)
-        # Call get_hog_features() with vis=False, feature_vec=True
+        # Extract binned color features
         spatial_features = bin_spatial(feature_image, size=(32,32))
         # Apply color_hist() also with a color space option
         hist_features = color_hist(feature_image, nbins=32)
