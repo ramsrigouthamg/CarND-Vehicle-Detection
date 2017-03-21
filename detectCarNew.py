@@ -261,7 +261,7 @@ if __name__ == "__main__":
         font = cv2.FONT_HERSHEY_SIMPLEX
         r, g, b = cv2.split(draw_img)
         final_output = cv2.merge([b, g, r])
-        cv2.putText(final_output, 'Frame No: '+str(frameNo), (100, 150), font, 1, (255, 255, 255), 1, cv2.LINE_AA)
+        cv2.putText(final_output, 'Frame No: '+str(frameNo), (100, 75), font, 1, (255, 255, 255), 1, cv2.LINE_AA)
         cv2.imshow('frame', final_output)
         # cv2.imshow('heatmap', heatmap)
         # Write the final image to videoWriter
