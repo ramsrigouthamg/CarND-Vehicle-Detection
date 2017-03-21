@@ -13,11 +13,13 @@ from sklearn.cross_validation import train_test_split
 
 # Define a function to return HOG features and visualization
 def get_hog_features(img, orient, pix_per_cell, cell_per_block, vis=False, feature_vec=True):
+    # Call with two outputs if vis==True
     if vis == True:
         features, hog_image = hog(img, orientations=orient, pixels_per_cell=(pix_per_cell, pix_per_cell),
                                   cells_per_block=(cell_per_block, cell_per_block), transform_sqrt=False,
                                   visualise=True, feature_vector=False)
         return features, hog_image
+    # Otherwise call with one output
     else:
         features = hog(img, orientations=orient, pixels_per_cell=(pix_per_cell, pix_per_cell),
                        cells_per_block=(cell_per_block, cell_per_block), transform_sqrt=False,
@@ -28,23 +30,23 @@ def get_hog_features(img, orient, pix_per_cell, cell_per_block, vis=False, featu
 # Define a function to extract features from a list of images
 # Have this function call bin_spatial() and color_hist()
 def extract_features(imgs, orient=8,pix_per_cell=8, cell_per_block=4):
-    # Create a list to append feature vectors to
+    # Create a list to append all extracted feature vectors to
     features = []
     # Iterate through the list of images
     for file in imgs:
+        # An array to hold all the features (bin_spatial,color_hist and HOG)
         image_features = []
         # Read in each one by one
         image = mpimg.imread(file)
-        # feature_image = np.copy(image)
+        # apply color conversion to 'YCrCb'
         feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2YCrCb)
         # Call get_hog_features() with vis=False, feature_vec=True
         spatial_features = bin_spatial(feature_image, size=(32,32))
-        image_features.append(spatial_features)
-
+        # Apply color_hist() also with a color space option
         hist_features = color_hist(feature_image, nbins=32)
-
+        image_features.append(spatial_features)
         image_features.append(hist_features)
-
+        # Call get_hog_features() with vis=False, feature_vec=True
         hog_features = []
         for channel in range(feature_image.shape[2]):
             hog_features.append(get_hog_features(feature_image[:, :, channel],
@@ -53,38 +55,40 @@ def extract_features(imgs, orient=8,pix_per_cell=8, cell_per_block=4):
         hog_features = np.ravel(hog_features)
         image_features.append(hog_features)
         image_features = np.concatenate(image_features)
-
         features.append(image_features)
     # Return list of feature vectors
     return np.array(features)
 
-
+# Define a function to compute binned color features
 def bin_spatial(image, size=(32, 32)):
-
+    # Use cv2.resize().ravel() to create the feature vector
     color1 = cv2.resize(image[:, :, 0], size).ravel()
     color2 = cv2.resize(image[:, :, 1], size).ravel()
     color3 = cv2.resize(image[:, :, 2], size).ravel()
-
+    # Return the feature vector
     return np.hstack((color1, color2, color3))
 
+# Define a function to compute color histogram features
 def color_hist(img, nbins=32):
-
+    # Compute the histogram of the color channels separately
     color_1_hist = np.histogram(img[:, :, 0], bins=nbins)
     color_2_hist = np.histogram(img[:, :, 0], bins=nbins)
     color_3_hist = np.histogram(img[:, :, 0], bins=nbins)
-
+    # Concatenate the histograms into a single feature vector and return
     return np.concatenate((color_1_hist[0], color_2_hist[0], color_3_hist[0]))
 
 
 if __name__ == "__main__":
+    # Read in all cars and non car images from the udacity dataset
     cars = glob.glob('vehicles/**/*.png', recursive=True)
     non_cars = glob.glob('non-vehicles/**/*.png', recursive=True)
-
     print(len(cars))
     print(len(non_cars))
+    # Define hyperparameters used for HOG
     orient = 8
     pix_per_cell = 8
     cell_per_block = 1
+    #  Extract the feature vectors for car and non-car images
     t1 = time.time()
     car_features = extract_features(cars,  orient=orient,
                                     pix_per_cell=pix_per_cell, cell_per_block=cell_per_block)
@@ -93,6 +97,7 @@ if __name__ == "__main__":
     t2 = time.time()
     print(round(t2 - t1, 3), 'No of seconds for feature extraction.')
 
+    # Create an array stack of feature vectors
     X = np.vstack((car_features, notcar_features)).astype(np.float64)
     print('X.shape', X.shape)
     # Fit a per-column scaler
@@ -128,14 +133,16 @@ if __name__ == "__main__":
 
     import pickle
 
+    # Save the trained support vector classifer and the scaler.
     pickle.dump(svc, open("saved_svc_YCrCb_full.p", "wb"))
     pickle.dump(X_scaler, open("saved_X_scaler_YCrCb_full.p", "wb"))
 
+    # Load the trained support vector classifer and the scaler from disk.
     loaded_svc = pickle.load(open("saved_svc_YCrCb_full.p", "rb"))
     loaded_X_scale = pickle.load(open("saved_X_scaler_YCrCb_full.p", "rb"))
 
     print(loaded_svc)
-
+    # Validate that the accuracy of original SVC and saved pickle SVC are the same.
     print('Test Accuracy of original SVC = ', round(svc.score(X_test, y_test), 4))
     print('Test Accuracy of pickled SVC = ', round(loaded_svc.score(X_test, y_test), 4))
 
