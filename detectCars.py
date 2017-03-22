@@ -40,13 +40,11 @@ def draw_labeled_bboxes(img, labels):
         nonzerox = np.array(nonzero[1])
         # Define a bounding box based on min/max x and y
         bbox = ((np.min(nonzerox), np.min(nonzeroy)), (np.max(nonzerox), np.max(nonzeroy)))
-
+        # Calculate area occupied by each bounding box
         areaInPixels = (np.max(nonzerox) - np.min(nonzerox))*(np.max(nonzeroy) - np.min(nonzeroy))
         # Draw the box on the image if it is higher than a fixed area threshold
         if areaInPixels > 5000: #In pixels
             cv2.rectangle(img, bbox[0], bbox[1], (0,0,255), 6)
-        # font = cv2.FONT_HERSHEY_SIMPLEX
-        # cv2.putText(img, str(areaInPixels), (np.min(nonzerox), np.min(nonzeroy)), font, 1, (255, 255, 255), 1, cv2.LINE_AA)
     # Return the image
     return img
 
@@ -105,15 +103,19 @@ def color_hist(img, nbins=32):
 
 # Define a single function that can extract features using hog sub-sampling and make predictions
 def find_cars(img, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, cell_per_block,showImage=True):
+    # Create a copy of the image
     draw_img = np.copy(img)
     img = img.astype(np.float32) / 255
+    # A list to append all the bounding boxes found where detection occurred.
     bounding_boxes =[]
+    # Extract the region to search from the whole image.
     img_tosearch = img[ystart:ystop, :, :]
+    # Convert RGB image to YcrCb
     ctrans_tosearch = convert_color(img_tosearch, conv='RGB2YCrCb')
     if scale != 1:
         imshape = ctrans_tosearch.shape
         ctrans_tosearch = cv2.resize(ctrans_tosearch, (np.int(imshape[1] / scale), np.int(imshape[0] / scale)))
-
+    # Split the iamge into three separate channels
     ch1 = ctrans_tosearch[:, :, 0]
     ch2 = ctrans_tosearch[:, :, 1]
     ch3 = ctrans_tosearch[:, :, 2]
@@ -133,7 +135,7 @@ def find_cars(img, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, ce
     hog1 = get_hog_features(ch1, orient, pix_per_cell, cell_per_block, feature_vec=False)
     hog2 = get_hog_features(ch2, orient, pix_per_cell, cell_per_block, feature_vec=False)
     hog3 = get_hog_features(ch3, orient, pix_per_cell, cell_per_block, feature_vec=False)
-
+    #  Iterate through the sliding windows
     for xb in range(nxsteps):
         for yb in range(nysteps):
             ypos = yb * cells_per_step
@@ -142,6 +144,7 @@ def find_cars(img, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, ce
             hog_feat1 = hog1[ypos:ypos + nblocks_per_window, xpos:xpos + nblocks_per_window].ravel()
             hog_feat2 = hog2[ypos:ypos + nblocks_per_window, xpos:xpos + nblocks_per_window].ravel()
             hog_feat3 = hog3[ypos:ypos + nblocks_per_window, xpos:xpos + nblocks_per_window].ravel()
+            # Combine the hog features from each channel
             hog_features = np.hstack((hog_feat1, hog_feat2, hog_feat3))
 
             xleft = xpos * pix_per_cell
@@ -153,7 +156,7 @@ def find_cars(img, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, ce
             spatial_features = bin_spatial(subimg, size=(32, 32))
             # Apply color_hist() also with a color space option
             hist_features = color_hist(subimg, nbins=32)
-
+            #
             combineFeatures = np.hstack((spatial_features, hist_features, hog_features))
             # Scale features and make a prediction
             test_features = X_scaler.transform(combineFeatures).reshape(1, -1)
@@ -163,56 +166,59 @@ def find_cars(img, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, ce
                 xbox_left = np.int(xleft * scale)
                 ytop_draw = np.int(ytop * scale)
                 win_draw = np.int(window * scale)
+                # If a car is predicted in the window append it to list of bounding boxes.
                 bounding_boxes.append(((xbox_left, ytop_draw + ystart), (xbox_left + win_draw, ytop_draw + win_draw + ystart)))
                 if showImage:
                     cv2.rectangle(draw_img, (xbox_left, ytop_draw + ystart),
                               (xbox_left + win_draw, ytop_draw + win_draw + ystart), (0, 0, 255), 6)
-
+    #  Return the bounding boxes and image with bounding boxes drawn
     return draw_img,bounding_boxes
 
-
+# Function to call find_cars at several scales
 def find_cars_multiscale(image, ystart, ystop, svc, X_scaler, orient, pix_per_cell, cell_per_block,showImage=False):
     # Different scales to search in the images for cars.
     scales = [1.0, 1.4, 1.8, 2.2, 2.6, 3.0]
+    # List to collect all bounding box detections at various scales
     all_scales_bboxes = []
-
+    # Loop through various scales
     for scale in scales:
         img,boundingboxes = find_cars(image, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, cell_per_block,showImage=False)
         for box in boundingboxes:
             all_scales_bboxes.append(box)
-
+    # Return all positive detections
     return all_scales_bboxes
 
 
 if __name__ == "__main__":
-
+    # Starting and ending y coordinate to search with sliding windows
     ystart = 380
     ystop = 670
-    # scale = 1.8
     orient = 8  # HOG orientations
     pix_per_cell = 8  # HOG pixels per cell
     cell_per_block = 1  # HOG cells per block
     svc = pickle.load(open("saved_svc_YCrCb_full.p", "rb"))  # Load svc
-    X_scaler = pickle.load(open("saved_X_scaler_YCrCb_full.p", "rb"))  # Load svc
-
+    X_scaler = pickle.load(open("saved_X_scaler_YCrCb_full.p", "rb"))  # Load svc scaler
+    #  Input video to process
     cap = cv2.VideoCapture('project_video.mp4')
-    # cap = cv2.VideoCapture('test_video.mp4')
+    # Define parameters for output video
     fourcc = cv2.VideoWriter_fourcc(*'MP4V')
     out = cv2.VideoWriter('output.mp4', fourcc, 20.0, (1280, 720))
     frameNo = 0
     # Define a queue to store moving average of heat map
     heatMapMovingAverage = deque(maxlen=15)
-
+    # Loop through the frames in the input video
     while (cap.isOpened()):
         frameNo = frameNo + 1
         print("FrameNo ", frameNo)
         # Read an image
         ret, frame = cap.read()
+        # Convert bgr to rgb
         b, g, r = cv2.split(frame)
         rgb_img = cv2.merge([r, g, b])
+        # Create a heatmap and an average heatmap empty array
         heat = np.zeros_like(frame[:, :, 0]).astype(np.float)
         heatAvg = np.zeros_like(frame[:, :, 0]).astype(np.float)
-
+        # All bounding boxes with detections
         bboxes = find_cars_multiscale(rgb_img, ystart, ystop, svc, X_scaler, orient, pix_per_cell, cell_per_block,
                                       showImage=False)
 
@@ -227,16 +233,19 @@ if __name__ == "__main__":
 
         # Apply threshold to help remove false positives
         heatMapMovingAverage.appendleft(heatmap)
-
+        # Sum all the heatmaps stored in the queue.
         for eachHeatMap in heatMapMovingAverage:
             heatAvg = np.add(heatAvg,eachHeatMap)
 
         print ("len(heatMapMovingAverage) ",len(heatMapMovingAverage),"Max val ",np.amax(heatAvg))
+        # Apply a threshold on the average heatmap.
         heatAvg = apply_threshold(heatAvg, 7)
         # Find final boxes from heatmap using label function
         labels = label(heatAvg)
+        # Draw labeled boxes on the image.
         draw_img = draw_labeled_bboxes(np.copy(rgb_img), labels)
         font = cv2.FONT_HERSHEY_SIMPLEX
+        # Convert bgr to rgb while writing and displaying.
         r, g, b = cv2.split(draw_img)
         final_output = cv2.merge([b, g, r])
         cv2.putText(final_output, 'Frame No: '+str(frameNo), (100, 75), font, 1, (255, 255, 255), 1, cv2.LINE_AA)
